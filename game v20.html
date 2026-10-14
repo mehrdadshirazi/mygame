@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Veltrix Cyberpunk - Hero Abilities Edition</title>
+    <!-- شبکه آنلاین P2P -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&display=swap');
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; touch-action: manipulation; }
+        body {
+            background: #020617;
+            color: #f8fafc;
+            font-family: 'Orbitron', system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            transition: background 0.8s ease;
+        }
+        
+        /* پس‌زمینه متحرک سایبرپانک */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 200%; height: 200%;
+            top: -50%; left: -50%;
+            background: linear-gradient(rgba(56, 189, 248, 0.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(56, 189, 248, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+            transform: perspective(500px) rotateX(60deg);
+            animation: gridMove 20s linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes gridMove {
+            0% { transform: perspective(500px) rotateX(60deg) translateY(0); }
+            100% { transform: perspective(500px) rotateX(60deg) translateY(30px); }
+        }
+
+        #ui-panel {
+            background: rgba(15, 23, 42, 0.82);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            padding: 8px 14px;
+            border-radius: 16px;
+            text-align: center;
+            margin-bottom: 6px;
+            width: 95%;
+            max-width: 420px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(56, 189, 248, 0.15);
+            backdrop-filter: blur(16px);
+            transition: border-color 0.5s ease, box-shadow 0.5s ease;
+        }
+
+        .title-neon {
+            font-size: 13px;
+            letter-spacing: 1.5px;
+            color: #38bdf8;
+            text-shadow: 0 0 8px #0284c7, 0 0 20px #38bdf8;
+            font-weight: 900;
+        }
+
+        input {
+            padding: 4px 8px;
+            border-radius: 8px;
+            border: 1px solid #0284c7;
+            background: rgba(2, 6, 23, 0.8);
+            color: #38bdf8;
+            text-align: center;
+            font-size: 11px;
+            font-weight: bold;
+            width: 85px;
+            outline: none;
+            box-shadow: inset 0 0 8px rgba(2, 132, 199, 0.3);
+            transition: all 0.3s;
+        }
+        input:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #0284c7, #38bdf8);
+            border: none;
+            color: #020617;
+            font-weight: 800;
+            padding: 5px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 2px;
+            font-size: 11px;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+            transition: all 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 0 18px rgba(56, 189, 248, 0.7);
+        }
+        .btn:active { transform: scale(0.95); }
+
+        /* انتخابگر و نمایشگر مرحله */
+        #stage-banner {
+            background: rgba(2, 132, 199, 0.15);
+            border: 1px dashed rgba(56, 189, 248, 0.5);
+            border-radius: 10px;
+            padding: 4px 8px;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.5s ease;
+        }
+
+        #stage-title {
+            font-size: 11px;
+            font-weight: 900;
+            color: #facc15;
+            text-shadow: 0 0 8px rgba(250, 204, 21, 0.5);
+        }
+
+        #stage-desc {
+            font-size: 10px;
+            color: #cbd5e1;
+            font-weight: 600;
+        }
+
+        /* --- کارت‌های امتیاز خارج از دایره بازی --- */
+        #scoreboard-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 95%;
+            max-width: 380px;
+            margin-bottom: 6px;
+            gap: 6px;
+        }
+
+        .score-card {
+            flex: 1;
+            padding: 5px 6px;
+            border-radius: 12px;
+            text-align: center;
+            backdrop-filter: blur(12px);
+            border: 1px solid transparent;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .score-card-p1 {
+            background: rgba(190, 18, 60, 0.25);
+            border-color: #fb7185;
+            box-shadow: 0 0 15px rgba(251, 113, 133, 0.3);
+        }
+
+        .score-card-high {
+            background: rgba(245, 158, 11, 0.2);
+            border-color: #f59e0b;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+        }
+
+        .score-card-p2 {
+            background: rgba(2, 132, 199, 0.25);
+            border-color: #38bdf8;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+        }
+
+        .score-label {
+            font-size: 10px;
+            color: #94a3b8;
+            font-weight: 700;
+            display: block;
+        }
+
+        .score-value {
+            font-size: 14px;
+            font-weight: 900;
+            margin-top: 1px;
+        }
+
+        .hud-subinfo {
+            font-size: 10px;
+            font-weight: 700;
+            margin-top: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        /* --- دکمه‌های توانایی خاص هر گوی --- */
+        #ability-container {
+            display: flex;
+            justify-content: space-between;
+            width: 95%;
+            max-width: 380px;
+            margin-bottom: 6px;
+            gap: 12px;
+        }
+
+        .ability-btn {
+            flex: 1;
+            padding: 7px 10px;
+            border-radius: 12px;
+            border: 1.5px solid transparent;
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 900;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ability-btn-p1 {
+            background: linear-gradient(135deg, rgba(190, 18, 60, 0.8), rgba(225, 29, 72, 0.9));
+            border-color: #f43f5e;
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(244, 63, 94, 0.5);
+        }
+
+        .ability-btn-p2 {
+            background: linear-gradient(135deg, rgba(2, 132, 199, 0.8), rgba(56, 189, 248, 0.9));
+            border-color: #38bdf8;
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
+        }
+
+        .ability-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(0.6);
+            box-shadow: none;
+        }
+
+        .ability-btn:active:not(:disabled) {
+            transform: scale(0.94);
+        }
+
+        #canvas-wrapper {
+            position: relative;
+            padding: 4px;
+            background: linear-gradient(145deg, rgba(56, 189, 248, 0.3), rgba(225, 29, 72, 0.2));
+            border-radius: 50%;
+            box-shadow: 0 0 60px rgba(56, 189, 248, 0.3), inset 0 0 30px rgba(56, 189, 248, 0.2);
+            transition: all 0.5s ease;
+        }
+
+        canvas {
+            background: #020617;
+            border-radius: 50%;
+            touch-action: none;
+            display: block;
+            transition: background 0.6s ease;
+        }
+
+        #status-text {
+            font-size: 11px;
+            color: #f59e0b;
+            margin-top: 3px;
+            font-weight: 600;
+            text-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-panel">
+        <div class="title-neon">⚡ VELTRIX: HERO ABILITIES EDITION ⚡</div>
+        
+        <div id="setup-section" style="margin-top: 3px;">
+            <button class="btn" onclick="createRoom()">ایجاد اتاق (P1)</button>
+            <input type="text" id="room-input" placeholder="کد اتاق">
+            <button class="btn" style="background: linear-gradient(135deg, #e11d48, #fb7185); color:#fff; box-shadow:0 0 12px rgba(225,29,72,0.5);" onclick="joinRoom()">ورود (P2)</button>
+        </div>
+
+        <div id="stage-banner">
+            <span id="stage-title">مرحله ۱: آرنای کلاسیک</span>
+            <span id="stage-desc">آغاز نبرد (دیوار ثابت، چاقو و بمب)</span>
+            <button class="btn" style="padding: 2px 6px; font-size: 10px;" onclick="nextStageManual()">مرحله بعد ➔</button>
+        </div>
+
+        <div id="status-text">کد را به هم‌رزم خود بدهید یا به گوی ضربه بزنید!</div>
+    </div>
+
+    <!-- کارت‌های امتیاز، سکه و تعداد جان‌های مسابقه -->
+    <div id="scoreboard-container">
+        <div class="score-card score-card-p1">
+            <span class="score-label" style="color: #fca5a5;">👻 P1 (روح)</span>
+            <div class="score-value" id="hud-p1" style="color: #fb7185;">0</div>
+            <div class="hud-subinfo" style="color: #fecdd3;">
+                <span id="hud-p1-lives">❤️❤️❤️</span> <span style="opacity: 0.5;">|</span> <span id="hud-p1-coins">🪙 0</span>
+            </div>
+        </div>
+
+        <div class="score-card score-card-high">
+            <span class="score-label" style="color: #fef08a;">🏆 HIGH SCORE</span>
+            <div class="score-value" id="hud-high" style="color: #f59e0b;">0</div>
+        </div>
+
+        <div class="score-card score-card-p2">
+            <span class="score-label" style="color: #7dd3fc;">⚡ P2 (سایبر)</span>
+            <div class="score-value" id="hud-p2" style="color: #38bdf8;">0</div>
+            <div class="hud-subinfo" style="color: #bae6fd;">
+                <span id="hud-p2-lives">❤️❤️❤️</span> <span style="opacity: 0.5;">|</span> <span id="hud-p2-coins">🪙 0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- دکمه‌های فعال‌سازی توانایی خاص هر گوی -->
+    <div id="ability-container">
+        <button id="btn-ability-p1" class="ability-btn ability-btn-p1" onclick="useAbility(1)">
+            👻 فاز غیبی (روح) <span id="cd-p1">آماده</span>
+        </button>
+        <button id="btn-ability-p2" class="ability-btn ability-btn-p2" onclick="useAbility(2)">
+            🌀 تله‌پورت (سایبر) <span id="cd-p2">آماده</span>
+        </button>
+    </div>
+
+    <div id="canvas-wrapper">
+        <canvas id="arenaCanvas" width="360" height="360"></canvas>
+    </div>
+
+<script>
+'use strict';
+
+// --- تعریف ۵ مرحله با رنگ‌بندی، پس‌زمینه و ویژگی‌های منحصربه‌فرد ---
+const STAGES = [
+    {
+        id: 1,
+        title: "مرحله ۱: آرنای کلاسیک",
+        desc: "آغاز نبرد (دیوار ثابت، چاقو و بمب)",
+        friction: 0.985,
+        allowedItems: ['KNIFE', 'BOMB', 'HEART'],
+        damageMultiplier: 1.0,
+        shrinking: false,
+        lasers: false,
+        chaos: false,
+        themeColor: '#0284c7',
+        glowColor: '#38bdf8',
+        canvasBg: '#020617',
+        gridColor: 'rgba(56, 189, 248, 0.08)',
+        bodyBg: 'radial-gradient(circle at 50% 20%, rgba(14, 165, 233, 0.15), transparent 70%), radial-gradient(circle at 80% 80%, rgba(225, 29, 72, 0.12), transparent 50%)'
+    },
+    {
+        id: 2,
+        title: "مرحله ۲: آرنای یخی و لغزنده",
+        desc: "اصطکاک بسیار کم (سر خوردن شدید گوی‌ها!)",
+        friction: 0.997,
+        allowedItems: ['KNIFE', 'BOMB', 'GUN', 'HEART'],
+        damageMultiplier: 1.0,
+        shrinking: false,
+        lasers: false,
+        chaos: false,
+        themeColor: '#06b6d4',
+        glowColor: '#a5f3fc',
+        canvasBg: '#041f31',
+        gridColor: 'rgba(165, 243, 252, 0.12)',
+        bodyBg: 'radial-gradient(circle at 50% 20%, rgba(6, 182, 212, 0.25), transparent 70%), radial-gradient(circle at 20% 80%, rgba(56, 189, 248, 0.2), transparent 50%)'
+    },
+    {
+        id: 3,
+        title: "مرحله ۳: آرنای کوچکشونده",
+        desc: "تنگ‌تر شدن زمین بازی با گذشت زمان!",
+        friction: 0.985,
+        allowedItems: ['KNIFE', 'BOMB', 'GUN', 'HEART'],
+        damageMultiplier: 1.2,
+        shrinking: true,
+        lasers: false,
+        chaos: false,
+        themeColor: '#e11d48',
+        glowColor: '#fda4af',
+        canvasBg: '#1a050d',
+        gridColor: 'rgba(244, 63, 94, 0.12)',
+        bodyBg: 'radial-gradient(circle at 50% 20%, rgba(225, 29, 72, 0.25), transparent 70%), radial-gradient(circle at 80% 80%, rgba(244, 63, 94, 0.15), transparent 50%)'
+    },
+    {
+        id: 4,
+        title: "مرحله ۴: آرنای تله‌گذاری شده",
+        desc: "مواظب پرتوهای لیزر متحرک خطرناک باشید!",
+        friction: 0.985,
+        allowedItems: ['KNIFE', 'BOMB', 'GUN', 'HEART'],
+        damageMultiplier: 1.3,
+        shrinking: false,
+        lasers: true,
+        chaos: false,
+        themeColor: '#f59e0b',
+        glowColor: '#fef08a',
+        canvasBg: '#1c1304',
+        gridColor: 'rgba(245, 158, 11, 0.12)',
+        bodyBg: 'radial-gradient(circle at 50% 20%, rgba(245, 158, 11, 0.25), transparent 70%), radial-gradient(circle at 80% 80%, rgba(234, 179, 8, 0.15), transparent 50%)'
+    },
+    {
+        id: 5,
+        title: "مرحله ۵: آرنای آشوب مطلق",
+        desc: "فینال بزرگ (دمیج ۲ برابر، بمب‌های فراوان و پالس سرعت!)",
+        friction: 0.988,
+        allowedItems: ['KNIFE', 'BOMB', 'GUN', 'HEART', 'BOMB'],
+        damageMultiplier: 2.0,
+        shrinking: true,
+        lasers: true,
+        chaos: true,
+        themeColor: '#a855f7',
+        glowColor: '#e9d5ff',
+        canvasBg: '#130421',
+        gridColor: 'rgba(168, 85, 247, 0.15)',
+        bodyBg: 'radial-gradient(circle at 50% 20%, rgba(168, 85, 247, 0.3), transparent 70%), radial-gradient(circle at 80% 80%, rgba(217, 70, 239, 0.2), transparent 50%)'
+    }
+];
+
+let currentStageIdx = 0;
+let currentStageTimer = 0;
+let laserAngle = 0;
+
+function getStage() {
+    return STAGES[currentStageIdx];
+}
+
+function updateStageBanner() {
+    const stg = getStage();
+    document.getElementById('stage-title').innerText = stg.title;
+    document.getElementById('stage-desc').innerText = stg.desc;
+    
+    document.body.style.backgroundImage = stg.bodyBg;
+    const banner = document.getElementById('stage-banner');
+    if (banner) {
+        banner.style.borderColor = stg.themeColor;
+        banner.style.background = `${stg.themeColor}22`;
+    }
+    const canvas = document.getElementById('arenaCanvas');
+    if (canvas) {
+        canvas.style.background = stg.canvasBg;
+    }
+}
+
+function nextStageManual() {
+    currentStageIdx = (currentStageIdx + 1) % STAGES.length;
+    updateStageBanner();
+    resetRound();
+}
+
+// --- 1. مدیریت امتیازها، سکه‌ها و جان‌های مسابقه ---
+let highScore = 0;
+try {
+    highScore = parseInt(localStorage.getItem('veltrix_highscore') || '0', 10);
+} catch(e) { highScore = 0; }
+
+let p1Score = 0;
+let p2Score = 0;
+let p1Coins = 0;
+let p2Coins = 0;
+let p1Lives = 3;
+let p2Lives = 3;
+
+// زمان‌بندی کول‌داون توانایی‌ها (۸ ثانیه)
+const ABILITY_COOLDOWN = 8.0;
+let p1AbilityCD = 0;
+let p2AbilityCD = 0;
+
+const elP1Score = document.getElementById('hud-p1');
+const elP2Score = document.getElementById('hud-p2');
+const elHighScore = document.getElementById('hud-high');
+const elP1Coins = document.getElementById('hud-p1-coins');
+const elP2Coins = document.getElementById('hud-p2-coins');
+const elP1Lives = document.getElementById('hud-p1-lives');
+const elP2Lives = document.getElementById('hud-p2-lives');
+
+const btnAbilityP1 = document.getElementById('btn-ability-p1');
+const btnAbilityP2 = document.getElementById('btn-ability-p2');
+const cdP1 = document.getElementById('cd-p1');
+const cdP2 = document.getElementById('cd-p2');
+
+function updateDOMScoreboard() {
+    if (elP1Score) elP1Score.innerText = p1Score;
+    if (elP2Score) elP2Score.innerText = p2Score;
+    if (elHighScore) elHighScore.innerText = highScore;
+
+    if (elP1Coins) elP1Coins.innerText = `🪙 ${p1Coins}`;
+    if (elP2Coins) elP2Coins.innerText = `🪙 ${p2Coins}`;
+
+    if (elP1Lives) elP1Lives.innerText = '❤️'.repeat(Math.max(0, p1Lives)) || '💀';
+    if (elP2Lives) elP2Lives.innerText = '❤️'.repeat(Math.max(0, p2Lives)) || '💀';
+}
+
+function updateAbilityButtons(dt) {
+    if (p1AbilityCD > 0) {
+        p1AbilityCD = Math.max(0, p1AbilityCD - dt);
+        btnAbilityP1.disabled = true;
+        cdP1.innerText = `(${p1AbilityCD.toFixed(1)}s)`;
+    } else {
+        btnAbilityP1.disabled = false;
+        cdP1.innerText = "آماده";
+    }
+
+    if (p2AbilityCD > 0) {
+        p2AbilityCD = Math.max(0, p2AbilityCD - dt);
+        btnAbilityP2.disabled = true;
+        cdP2.innerText = `(${p2AbilityCD.toFixed(1)}s)`;
+    } else {
+        btnAbilityP2.disabled = false;
+        cdP2.innerText = "آماده";
+    }
+}
+
+function addScore(playerNum, points) {
+    if (playerNum === 1) p1Score += points;
+    else if (playerNum === 2) p2Score += points;
+
+    const currentMax = Math.max(p1Score, p2Score);
+    if (currentMax > highScore) {
+        highScore = currentMax;
+        try { localStorage.setItem('veltrix_highscore', highScore.toString()); } catch(e){}
+    }
+    updateDOMScoreboard();
+}
+
+updateDOMScoreboard();
+
+// --- 2. سیستم صوتی پیشرفته Web Audio API ---
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function initAudio() {
+    if (!audioCtx) audioCtx = new AudioCtx();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playSound(type) {
+    if (!audioCtx) return;
+    try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+
+        if (type === 'boost') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(220, now);
+            osc.frequency.exponentialRampToValueAtTime(750, now + 0.12);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+            osc.start(now); osc.stop(now + 0.12);
+        } else if (type === 'ghost_phase') {
+            // افکت صوتی شبح‌وار و غیبی گوی روح
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.exponentialRampToValueAtTime(900, now + 0.35);
+            gain.gain.setValueAtTime(0.4, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+            osc.start(now); osc.stop(now + 0.35);
+        } else if (type === 'teleport') {
+            // افکت صوتی جابجایی آنی دیژیتالی سایبر
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(1200, now);
+            osc.frequency.exponentialRampToValueAtTime(180, now + 0.2);
+            gain.gain.setValueAtTime(0.4, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+            osc.start(now); osc.stop(now + 0.2);
+        } else if (type === 'rage_boost') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.exponentialRampToValueAtTime(1100, now + 0.18);
+            gain.gain.setValueAtTime(0.5, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+            osc.start(now); osc.stop(now + 0.18);
+        } else if (type === 'hit') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(320, now);
+            osc.frequency.exponentialRampToValueAtTime(80, now + 0.1);
+            gain.gain.setValueAtTime(0.4, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now); osc.stop(now + 0.1);
+        } else if (type === 'explosion') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(160, now);
+            osc.frequency.exponentialRampToValueAtTime(30, now + 0.45);
+            gain.gain.setValueAtTime(0.6, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+            osc.start(now); osc.stop(now + 0.45);
+        } else if (type === 'slice') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(950, now);
+            osc.frequency.exponentialRampToValueAtTime(250, now + 0.1);
+            gain.gain.setValueAtTime(0.4, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now); osc.stop(now + 0.1);
+        } else if (type === 'shoot') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(800, now);
+            osc.frequency.exponentialRampToValueAtTime(150, now + 0.08);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+            osc.start(now); osc.stop(now + 0.08);
+        } else if (type === 'laser') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.exponentialRampToValueAtTime(200, now + 0.06);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+            osc.start(now); osc.stop(now + 0.06);
+        } else if (type === 'heal') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(520, now);
+            osc.frequency.exponentialRampToValueAtTime(1040, now + 0.2);
+            gain.gain.setValueAtTime(0.4, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+            osc.start(now); osc.stop(now + 0.2);
+        } else if (type === 'pickup') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(440, now);
+            osc.frequency.setValueAtTime(880, now + 0.08);
+            gain.gain.setValueAtTime(0.35, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+            osc.start(now); osc.stop(now + 0.15);
+        } else if (type === 'victory_fanfare') {
+            const notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((freq, idx) => {
+                const o = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                o.type = 'sine';
+                o.connect(g);
+                g.connect(audioCtx.destination);
+                const startTime = now + idx * 0.12;
+                o.frequency.setValueAtTime(freq, startTime);
+                g.gain.setValueAtTime(0.4, startTime);
+                g.gain.exponentialRampToValueAtTime(0.001, startTime + 0.4);
+                o.start(startTime);
+                o.stop(startTime + 0.4);
+            });
+        }
+    } catch(e) {}
+}
+
+// --- 3. شبکه آنلاین P2P ---
+let peer = null, conn = null, myRole = 'HOST', myPeerId = '';
+const statusText = document.getElementById('status-text');
+
+function initPeer() {
+    myPeerId = Math.floor(1000 + Math.random() * 9000).toString();
+    if (window.Peer) {
+        peer = new Peer('veltrix-' + myPeerId);
+        peer.on('open', id => statusText.innerText = `کد اختصاصی شما: ${myPeerId}`);
+        peer.on('connection', c => {
+            conn = c; myRole = 'HOST'; setupConnection();
+            statusText.innerText = '⚡ بازیکن دوم متصل شد! نبرد آغاز گردید.';
+        });
+    } else {
+        statusText.innerText = 'حالت آفلاین (شبکه بارگذاری نشد)';
+    }
+}
+
+function createRoom() { alert(`کد اتاق شما: ${myPeerId}`); }
+function joinRoom() {
+    const code = document.getElementById('room-input').value.trim();
+    if (!code) return alert('کد را وارد کنید');
+    if (peer) {
+        conn = peer.connect('veltrix-' + code);
+        myRole = 'CLIENT'; setupConnection();
+    }
+}
+
+function setupConnection() {
+    if (!conn) return;
+    conn.on('open', () => {
+        statusText.innerText = '✅ شبکه متصل گردید!';
+        if (myRole === 'HOST') resetFullMatch();
+    });
+    conn.on('data', data => {
+        if (data.type === 'BOOST') {
+            const ball = data.player === 1 ? p1Ball : p2Ball;
+            applyBoost(ball, data.fx, data.fy);
+        } else if (data.type === 'USE_ABILITY') {
+            triggerAbility(data.player);
+        } else if (data.type === 'SYNC') {
+            if (myRole === 'CLIENT') {
+                p1Ball.x = data.p1.x; p1Ball.y = data.p1.y; p1Ball.hp = data.p1.hp; p1Ball.knifeTimer = data.p1.knifeTimer; p1Ball.gunTimer = data.p1.gunTimer; p1Ball.ghostTimer = data.p1.ghostTimer;
+                p2Ball.x = data.p2.x; p2Ball.y = data.p2.y; p2Ball.hp = data.p2.hp; p2Ball.knifeTimer = data.p2.knifeTimer; p2Ball.gunTimer = data.p2.gunTimer;
+                p1Score = data.p1Score;
+                p2Score = data.p2Score;
+                p1Coins = data.p1Coins || 0;
+                p2Coins = data.p2Coins || 0;
+                p1Lives = data.p1Lives !== undefined ? data.p1Lives : 3;
+                p2Lives = data.p2Lives !== undefined ? data.p2Lives : 3;
+                p1AbilityCD = data.p1AbilityCD || 0;
+                p2AbilityCD = data.p2AbilityCD || 0;
+                currentStageIdx = data.currentStageIdx || 0;
+                highScore = data.highScore;
+                items = data.items;
+                bullets = data.bullets || [];
+                gameState = data.gameState;
+                winnerName = data.winnerName;
+                updateStageBanner();
+                updateDOMScoreboard();
+            }
+        }
+    });
+}
+
+// --- 4. کانواس و فیزیک بازی ---
+const canvas = document.getElementById('arenaCanvas');
+const ctx = canvas.getContext('2d');
+const center = { x: canvas.width / 2, y: canvas.height / 2 };
+let baseArenaRadius = 158;
+let currentArenaRadius = 158;
+
+let items = [];
+let bullets = [];
+let particles = [];
+let trailParticles = [];
+let shockwaves = [];
+let victoryFireworks = [];
+let victoryGlowAlpha = 0;
+let arenaPulseAngle = 0;
+let shakeTimer = 0;
+let gameState = 'PLAYING';
+let winnerName = '';
+
+const MAX_HP = 500;
+const RAGE_THRESHOLD = 0.20;
+
+class MetallicBall {
+    constructor(x, y, mainColor, glowColor, name, owner) {
+        this.x = x; this.y = y;
+        this.baseRadius = 21;
+        this.radius = 21;
+        this.mainColor = mainColor;
+        this.glowColor = glowColor;
+        this.name = name; this.owner = owner;
+        this.vx = 0; this.vy = 0;
+        this.maxHp = MAX_HP;
+        this.hp = MAX_HP;
+        this.knifeTimer = 0;
+        this.gunTimer = 0;
+        this.ghostTimer = 0; // تایمر فاز غیبی (روح)
+        this.shootCooldown = 0;
+        this.bladeAngle = 0;
+        this.mass = 1.0;
+        this.ragePulse = 0;
+    }
+
+    isRage() {
+        return (this.hp / this.maxHp) < RAGE_THRESHOLD && this.hp > 0;
+    }
+
+    isGhost() {
+        return this.ghostTimer > 0;
+    }
+
+    update(dt) {
+        if (gameState !== 'PLAYING') return;
+
+        const stage = getStage();
+        this.x += this.vx * dt; this.y += this.vy * dt;
+        this.vx *= stage.friction; this.vy *= stage.friction;
+
+        // به‌روزرسانی تایمر فاز غیبی (روح)
+        if (this.ghostTimer > 0) {
+            this.ghostTimer -= dt;
+            trailParticles.push({
+                x: this.x + (Math.random() - 0.5) * 16,
+                y: this.y + (Math.random() - 0.5) * 16,
+                color: '#e2e8f0',
+                life: 0.35, maxLife: 0.35,
+                size: 5
+            });
+        }
+
+        if (this.isRage()) {
+            this.radius = this.baseRadius * 1.25;
+            this.ragePulse += 0.12;
+            
+            trailParticles.push({
+                x: this.x + (Math.random() - 0.5) * 16,
+                y: this.y + (Math.random() - 0.5) * 16,
+                color: Math.random() > 0.5 ? '#ff0033' : '#ffaa00',
+                life: 0.4, maxLife: 0.4,
+                size: 4 + Math.random() * 5
+            });
+        } else {
+            this.radius = this.baseRadius;
+        }
+
+        if (stage.chaos && Math.random() < 0.02) {
+            this.vx += (Math.random() - 0.5) * 120;
+            this.vy += (Math.random() - 0.5) * 120;
+        }
+
+        const speed = Math.hypot(this.vx, this.vy);
+        if (speed > 50) {
+            trailParticles.push({
+                x: this.x + (Math.random() - 0.5) * 10,
+                y: this.y + (Math.random() - 0.5) * 10,
+                color: this.isRage() ? '#ff4500' : this.glowColor,
+                life: 0.3, maxLife: 0.3,
+                size: Math.min(8, speed / 40)
+            });
+        }
+
+        if (this.knifeTimer > 0) {
+            this.knifeTimer -= dt;
+            this.bladeAngle += 10 * dt;
+        }
+
+        if (this.gunTimer > 0) {
+            this.gunTimer -= dt;
+            this.shootCooldown -= dt;
+            if (this.shootCooldown <= 0) {
+                this.shootCooldown = 0.55;
+                const enemy = this.owner === 1 ? p2Ball : p1Ball;
+                const angle = Math.atan2(enemy.y - this.y, enemy.x - this.x);
+                bullets.push({
+                    x: this.x + Math.cos(angle) * (this.radius + 12),
+                    y: this.y + Math.sin(angle) * (this.radius + 12),
+                    vx: Math.cos(angle) * 440,
+                    vy: Math.sin(angle) * 440,
+                    owner: this.owner,
+                    color: this.isRage() ? '#ff2200' : this.glowColor,
+                    isRage: this.isRage(),
+                    life: 1.2
+                });
+                playSound('shoot');
+            }
+        }
+
+        const dx = this.x - center.x, dy = this.y - center.y;
+        const dist = Math.hypot(dx, dy);
+
+        // برخورد دیواره آرنا (در فاز غیبی، گوی می‌تواند از دیواره بدون آسیب عبور کرده و از سمت دیگر ظاهر شود!)
+        if (dist + this.radius > currentArenaRadius) {
+            if (this.isGhost()) {
+                this.x = center.x - (dx * 0.92);
+                this.y = center.y - (dy * 0.92);
+                createSparks(this.x, this.y, '#e2e8f0', 14);
+                playSound('ghost_phase');
+            } else {
+                const nx = dx / dist, ny = dy / dist;
+                const dot = this.vx * nx + this.vy * ny;
+                this.vx -= 2 * dot * nx; this.vy -= 2 * dot * ny;
+                this.x = center.x + nx * (currentArenaRadius - this.radius);
+                this.y = center.y + ny * (currentArenaRadius - this.radius);
+                
+                createSparks(this.x, this.y, this.isRage() ? '#ff3300' : '#38bdf8', 8);
+                playSound('hit');
+            }
+        }
+
+        for (let i = items.length - 1; i >= 0; i--) {
+            const item = items[i];
+            if (Math.hypot(this.x - item.x, this.y - item.y) < this.radius + 16) {
+                if (item.type === 'HEART') {
+                    this.hp = Math.min(this.maxHp, this.hp + 100);
+                    addScore(this.owner, 40);
+                    createSparks(item.x, item.y, '#ff007f', 16);
+                    playSound('heal');
+                } else if (item.type === 'BOMB') {
+                    triggerExplosion(item.x, item.y, this.owner);
+                    addScore(this.owner, 75);
+                } else if (item.type === 'KNIFE') {
+                    this.knifeTimer = 8.0;
+                    addScore(this.owner, 50);
+                    playSound('pickup');
+                } else if (item.type === 'GUN') {
+                    this.gunTimer = 8.0;
+                    this.shootCooldown = 0;
+                    addScore(this.owner, 60);
+                    playSound('pickup');
+                }
+                items.splice(i, 1);
+            }
+        }
+    }
+
+    draw() {
+        ctx.save();
+        const inRage = this.isRage();
+        const inGhost = this.isGhost();
+
+        if (inGhost) {
+            ctx.globalAlpha = 0.55;
+        }
+
+        // ۱. هاله‌ی نئونی
+        if (inGhost) {
+            ctx.shadowColor = '#e2e8f0';
+            ctx.shadowBlur = 30;
+        } else if (inRage) {
+            const pulseGlow = 35 + Math.sin(this.ragePulse) * 12;
+            ctx.shadowColor = Math.sin(this.ragePulse) > 0 ? '#ff0033' : '#ffaa00';
+            ctx.shadowBlur = pulseGlow;
+
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius + 6, 0, Math.PI * 2);
+            ctx.strokeStyle = '#facc15';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+        } else {
+            ctx.shadowColor = this.glowColor;
+            ctx.shadowBlur = 25;
+        }
+
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius + 2, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.fill();
+        
+        // ۲. لوله تفنگ نئونی
+        if (this.gunTimer > 0) {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            const enemy = this.owner === 1 ? p2Ball : p1Ball;
+            const aimAngle = Math.atan2(enemy.y - this.y, enemy.x - this.x);
+            ctx.rotate(aimAngle);
+
+            ctx.fillStyle = inRage ? '#ff0033' : '#f59e0b';
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5;
+            ctx.shadowColor = inRage ? '#ff0033' : '#f59e0b';
+            ctx.shadowBlur = 14;
+
+            ctx.fillRect(10, -5, 20, 10);
+            ctx.strokeRect(10, -5, 20, 10);
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillRect(30, -3, 8, 6);
+
+            ctx.restore();
+        }
+
+        // ۳. تیغه‌های چرخان
+        if (this.knifeTimer > 0) {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.bladeAngle);
+            ctx.strokeStyle = inRage ? '#ff2200' : '#38bdf8'; ctx.lineWidth = 4;
+            ctx.shadowColor = inRage ? '#ff2200' : '#38bdf8'; ctx.shadowBlur = 20;
+
+            [-36, 36].forEach(offset => {
+                ctx.beginPath();
+                ctx.moveTo(offset, -14);
+                ctx.lineTo(offset > 0 ? offset + 18 : offset - 18, 0);
+                ctx.lineTo(offset, 14);
+                ctx.closePath();
+                ctx.fillStyle = inRage ? '#ff2200' : '#38bdf8'; ctx.fill(); ctx.stroke();
+            });
+            ctx.restore();
+        }
+
+        // ۴. بدنه‌ی متالیک و گرادیان
+        const grad = ctx.createRadialGradient(
+            this.x - this.radius * 0.4, 
+            this.y - this.radius * 0.4, 
+            1, 
+            this.x, 
+            this.y, 
+            this.radius
+        );
+
+        if (inGhost) {
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.5, '#cbd5e1');
+            grad.addColorStop(1, '#475569');
+        } else if (inRage) {
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.2, '#fef08a');
+            grad.addColorStop(0.5, '#f97316');
+            grad.addColorStop(0.85, '#dc2626');
+            grad.addColorStop(1, '#450a0a');
+        } else {
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.25, '#f8fafc');
+            grad.addColorStop(0.6, this.mainColor);
+            grad.addColorStop(0.9, '#020617');
+            grad.addColorStop(1, '#000000');
+        }
+
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        ctx.lineWidth = (inRage || inGhost) ? 3 : 2; 
+        ctx.strokeStyle = inGhost ? '#ffffff' : (inRage ? '#facc15' : '#f8fafc'); 
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(this.x - this.radius * 0.35, this.y - this.radius * 0.35, this.radius * 0.3, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.fill();
+
+        // نشانگر متنی RAGE 🔥 یا GHOST 👻
+        if (inGhost) {
+            ctx.font = '900 9px Orbitron, system-ui, Tahoma';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = '#38bdf8';
+            ctx.shadowBlur = 8;
+            ctx.fillText('👻 GHOST', this.x, this.y + 3);
+        } else if (inRage) {
+            ctx.font = '900 10px Orbitron, system-ui, Tahoma';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#facc15';
+            ctx.shadowColor = '#ff0033';
+            ctx.shadowBlur = 8;
+            ctx.fillText('🔥 RAGE x2', this.x, this.y + 4);
+        }
+
+        // ۵. نوار HP مدرن
+        const hpRatio = Math.max(0, this.hp) / this.maxHp;
+        const barWidth = 46, barHeight = 6;
+        
+        ctx.fillStyle = 'rgba(2, 6, 23, 0.9)';
+        ctx.fillRect(this.x - barWidth/2, this.y - 34, barWidth, barHeight);
+
+        const hpGrad = ctx.createLinearGradient(this.x - barWidth/2, 0, this.x + barWidth/2, 0);
+        if (inRage) {
+            hpGrad.addColorStop(0, '#dc2626'); hpGrad.addColorStop(1, '#f97316');
+        } else if (hpRatio > 0.4) {
+            hpGrad.addColorStop(0, '#22c55e'); hpGrad.addColorStop(1, '#4ade80');
+        } else {
+            hpGrad.addColorStop(0, '#dc2626'); hpGrad.addColorStop(1, '#f87171');
+        }
+
+        ctx.shadowColor = inRage ? '#dc2626' : (hpRatio > 0.4 ? '#22c55e' : '#ef4444');
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = hpGrad;
+        ctx.fillRect(this.x - barWidth/2, this.y - 34, hpRatio * barWidth, barHeight);
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 0.8;
+        ctx.strokeRect(this.x - barWidth/2, this.y - 34, barWidth, barHeight);
+
+        ctx.shadowBlur = 0;
+        ctx.font = 'bold 9px Orbitron, system-ui, Tahoma';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = inRage ? '#facc15' : '#ffffff';
+        ctx.fillText(`${Math.ceil(Math.max(0, this.hp))}`, this.x, this.y - 37);
+
+        ctx.restore();
+    }
+}
+
+const p1Ball = new MetallicBall(center.x - 75, center.y, '#be123c', '#fb7185', 'P1 👻', 1);
+const p2Ball = new MetallicBall(center.x + 75, center.y, '#0284c7', '#38bdf8', 'P2 ⚡', 2);
+
+// تابع فعال‌سازی توانایی خاص هیروها
+function useAbility(playerNum) {
+    if (gameState !== 'PLAYING') return;
+
+    if (playerNum === 1 && p1AbilityCD <= 0) {
+        triggerAbility(1);
+        if (conn && conn.open) conn.send({ type: 'USE_ABILITY', player: 1 });
+    } else if (playerNum === 2 && p2AbilityCD <= 0) {
+        triggerAbility(2);
+        if (conn && conn.open) conn.send({ type: 'USE_ABILITY', player: 2 });
+    }
+}
+
+function triggerAbility(playerNum) {
+    initAudio();
+
+    if (playerNum === 1) {
+        // توانایی گوی روح: فاز غیبی برای ۳ ثانیه
+        p1Ball.ghostTimer = 3.0;
+        p1AbilityCD = ABILITY_COOLDOWN;
+        playSound('ghost_phase');
+        createSparks(p1Ball.x, p1Ball.y, '#e2e8f0', 25);
+    } else if (playerNum === 2) {
+        // توانایی گوی سایبر: جابجایی آنی (تله‌پورت) به سمت دیگر آرنا
+        p2AbilityCD = ABILITY_COOLDOWN;
+        createSparks(p2Ball.x, p2Ball.y, '#38bdf8', 20);
+
+        const enemy = p1Ball;
+        const angle = Math.atan2(center.y - enemy.y, center.x - enemy.x);
+        p2Ball.x = center.x + Math.cos(angle) * (currentArenaRadius * 0.65);
+        p2Ball.y = center.y + Math.sin(angle) * (currentArenaRadius * 0.65);
+        p2Ball.vx = Math.cos(angle) * 150;
+        p2Ball.vy = Math.sin(angle) * 150;
+
+        playSound('teleport');
+        createSparks(p2Ball.x, p2Ball.y, '#38bdf8', 25);
+        shockwaves.push({ x: p2Ball.x, y: p2Ball.y, r: 10, maxR: 80, alpha: 1.0, color: '#38bdf8' });
+    }
+}
+
+function createSparks(x, y, color, count) {
+    for (let i = 0; i < count; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const spd = 60 + Math.random() * 180;
+        particles.push({
+            x, y, vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd,
+            life: 0.35, maxLife: 0.35, color: color
+        });
+    }
+}
+
+function spawnVictoryEffects(winnerWinnerBall) {
+    victoryGlowAlpha = 1.0;
+    playSound('victory_fanfare');
+    shakeTimer = 0.5;
+
+    const winnerColor = winnerWinnerBall ? winnerWinnerBall.glowColor : '#f59e0b';
+    const originX = winnerWinnerBall ? winnerWinnerBall.x : center.x;
+    const originY = winnerWinnerBall ? winnerWinnerBall.y : center.y;
+
+    for (let i = 0; i < 60; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const spd = 80 + Math.random() * 260;
+        victoryFireworks.push({
+            x: originX,
+            y: originY,
+            vx: Math.cos(ang) * spd,
+            vy: Math.sin(ang) * spd,
+            life: 1.2,
+            maxLife: 1.2,
+            size: 3 + Math.random() * 4,
+            color: Math.random() > 0.3 ? winnerColor : '#facc15'
+        });
+    }
+
+    shockwaves.push({ x: originX, y: originY, r: 10, maxR: 160, alpha: 1.0, color: winnerColor });
+    shockwaves.push({ x: center.x, y: center.y, r: 20, maxR: 180, alpha: 0.8, color: '#facc15' });
+}
+
+function triggerExplosion(x, y, triggerOwner) {
+    const stage = getStage();
+    playSound('explosion');
+    shakeTimer = 0.4;
+    createSparks(x, y, '#f97316', 32);
+
+    shockwaves.push({ x, y, r: 10, maxR: 110, alpha: 1.0, color: '#f97316' });
+
+    [p1Ball, p2Ball].forEach(b => {
+        if (b.isGhost()) return;
+
+        const d = Math.hypot(b.x - x, b.y - y);
+        if (d < 95) {
+            if (b.owner !== triggerOwner) {
+                b.hp -= 20 * stage.damageMultiplier;
+                addScore(triggerOwner, 100);
+            }
+            const ang = Math.atan2(b.y - y, b.x - x);
+            const rageMult = b.isRage() ? 2.0 : 1.0;
+            b.vx += Math.cos(ang) * 380 * rageMult;
+            b.vy += Math.sin(ang) * 380 * rageMult;
+        }
+    });
+}
+
+function applyBoost(ball, fx, fy) {
+    if (gameState !== 'PLAYING') return;
+    initAudio();
+
+    const rageMultiplier = ball.isRage() ? 2.0 : 1.0;
+    ball.vx += fx * rageMultiplier; 
+    ball.vy += fy * rageMultiplier;
+
+    if (ball.isRage()) {
+        playSound('rage_boost');
+        createSparks(ball.x, ball.y, '#ff3300', 16);
+    } else {
+        playSound('boost');
+    }
+}
+
+function handleTouch(e) {
+    e.preventDefault();
+    if (gameState !== 'PLAYING') return;
+
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches ? e.touches : e;
+    const tx = (touch.clientX - rect.left) * (canvas.width / rect.width);
+    const ty = (touch.clientY - rect.top) * (canvas.height / rect.height);
+
+    const myBall = (myRole === 'HOST') ? p1Ball : p2Ball;
+    if (Math.hypot(tx - myBall.x, ty - myBall.y) <= myBall.radius + 32) {
+        const angle = Math.atan2(myBall.y - ty, myBall.x - tx);
+        const fx = Math.cos(angle) * 330, fy = Math.sin(angle) * 330;
+        applyBoost(myBall, fx, fy);
+        if (conn && conn.open) conn.send({ type: 'BOOST', player: myRole === 'HOST' ? 1 : 2, fx, fy });
+    }
+}
+
+canvas.addEventListener('touchstart', handleTouch, { passive: false });
+canvas.addEventListener('mousedown', handleTouch);
+
+// میانبر کلیدهای کیبورد برای استفاده از توانایی‌ها
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'Shift' || e.key === 'a' || e.key === 'A') {
+        useAbility(1);
+    } else if (e.key === 'Control' || e.key === 'l' || e.key === 'L' || e.key === ' ') {
+        useAbility(2);
+    }
+});
+
+setInterval(() => {
+    if (myRole === 'HOST' && gameState === 'PLAYING' && items.length < 4) {
+        const stage = getStage();
+        const randType = stage.allowedItems[Math.floor(Math.random() * stage.allowedItems.length)];
+        
+        const spawnCount = stage.chaos ? 2 : 1;
+        for (let i = 0; i < spawnCount; i++) {
+            items.push({
+                x: center.x + (Math.random() - 0.5) * (currentArenaRadius * 1.1),
+                y: center.y + (Math.random() - 0.5) * (currentArenaRadius * 1.1),
+                type: randType,
+                pulse: 0
+            });
+        }
+    }
+}, 3500);
+
+function drawItems() {
+    items.forEach(it => {
+        it.pulse += 0.08;
+        const scale = 1 + Math.sin(it.pulse) * 0.16;
+
+        ctx.save();
+        ctx.translate(it.x, it.y);
+        ctx.scale(scale, scale);
+
+        if (it.type === 'GUN') {
+            ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 18;
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(-8, -4, 16, 6);
+            ctx.fillRect(0, 2, 6, 8);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(6, -2, 5, 2);
+        } else if (it.type === 'HEART') {
+            ctx.shadowColor = '#ff007f'; ctx.shadowBlur = 20;
+            ctx.beginPath();
+            ctx.moveTo(0, 4);
+            ctx.bezierCurveTo(-10, -8, -16, 2, 0, 14);
+            ctx.bezierCurveTo(16, 2, 10, -8, 0, 4);
+            ctx.fillStyle = '#ff007f'; ctx.fill();
+            ctx.lineWidth = 1.5; ctx.strokeStyle = '#ffffff'; ctx.stroke();
+        } else if (it.type === 'BOMB') {
+            ctx.beginPath(); ctx.arc(0, 0, 13, 0, Math.PI * 2);
+            ctx.fillStyle = '#020617'; ctx.shadowColor = '#e11d48'; ctx.shadowBlur = 18; ctx.fill();
+            ctx.strokeStyle = '#e11d48'; ctx.lineWidth = 2.5; ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -13); ctx.quadraticCurveTo(6, -18, 10, -22);
+            ctx.strokeStyle = '#facc15'; ctx.lineWidth = 2; ctx.stroke();
+        } else if (it.type === 'KNIFE') {
+            ctx.beginPath();
+            ctx.moveTo(-11, 9); ctx.lineTo(11, -11); ctx.lineTo(4, -13); ctx.lineTo(-9, 2);
+            ctx.closePath();
+            ctx.fillStyle = '#38bdf8'; ctx.shadowColor = '#38bdf8'; ctx.shadowBlur = 18; ctx.fill();
+        }
+        ctx.restore();
+    });
+}
+
+function updateAndDrawBullets(dt) {
+    const stage = getStage();
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        b.life -= dt;
+
+        if (Math.hypot(b.x - center.x, b.y - center.y) > currentArenaRadius || b.life <= 0) {
+            bullets.splice(i, 1);
+            continue;
+        }
+
+        const targetBall = b.owner === 1 ? p2Ball : p1Ball;
+        if (Math.hypot(b.x - targetBall.x, b.y - targetBall.y) < targetBall.radius + 4) {
+            if (!targetBall.isGhost()) {
+                const rageDmgMult = b.isRage ? 2.0 : 1.0;
+                targetBall.hp -= 10 * stage.damageMultiplier * rageDmgMult;
+                addScore(b.owner, 100);
+                createSparks(b.x, b.y, b.color, 12);
+                playSound('slice');
+            }
+            bullets.splice(i, 1);
+            continue;
+        }
+
+        ctx.save();
+        ctx.shadowColor = b.color; ctx.shadowBlur = 12;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.isRage ? 6 : 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
+function updateAndDrawLasers(dt) {
+    const stage = getStage();
+    if (!stage.lasers) return;
+
+    laserAngle += 0.8 * dt;
+
+    const x1 = center.x + Math.cos(laserAngle) * currentArenaRadius;
+    const y1 = center.y + Math.sin(laserAngle) * currentArenaRadius;
+    const x2 = center.x - Math.cos(laserAngle) * currentArenaRadius;
+    const y2 = center.y - Math.sin(laserAngle) * currentArenaRadius;
+
+    ctx.save();
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 3;
+    ctx.shadowColor = '#f87171';
+    ctx.shadowBlur = 18;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.restore();
+
+    [p1Ball, p2Ball].forEach(ball => {
+        if (ball.isGhost()) return;
+
+        const dist = pointToSegmentDistance(ball.x, ball.y, x1, y1, x2, y2);
+        if (dist < ball.radius + 2) {
+            ball.hp -= 15 * dt * stage.damageMultiplier;
+            createSparks(ball.x, ball.y, '#f87171', 2);
+            playSound('laser');
+        }
+    });
+}
+
+function pointToSegmentDistance(px, py, x1, y1, x2, y2) {
+    const l2 = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+    if (l2 === 0) return Math.hypot(px - x1, py - y1);
+    let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
+}
+
+function checkOptimizedCollision(b1, b2) {
+    if (gameState !== 'PLAYING') return;
+
+    const dx = b2.x - b1.x, dy = b2.y - b1.y;
+    const distSq = dx * dx + dy * dy;
+    const radiiSum = b1.radius + b2.radius;
+
+    if (distSq >= radiiSum * radiiSum || distSq === 0) return;
+
+    const dist = Math.sqrt(distSq);
+    const nx = dx / dist, ny = dy / dist;
+
+    const overlap = radiiSum - dist;
+    b1.x -= nx * overlap * 0.5; b1.y -= ny * overlap * 0.5;
+    b2.x += nx * overlap * 0.5; b2.y += ny * overlap * 0.5;
+
+    const v1_rel = b1.vx * nx + b1.vy * ny;
+    const v2_rel = -(b2.vx * nx + b2.vy * ny);
+
+    const kx = b1.vx - b2.vx, ky = b1.vy - b2.vy;
+    const impulse = 2 * (nx * kx + ny * ky) / (b1.mass + b2.mass);
+
+    b1.vx -= impulse * b2.mass * nx; b1.vy -= impulse * b2.mass * ny;
+    b2.vx += impulse * b1.mass * nx; b2.vy += impulse * b1.mass * ny;
+
+    createSparks((b1.x + b2.x) / 2, (b1.y + b2.y) / 2, '#ffffff', 10);
+    playSound('hit');
+
+    let striker = null;
+    let victim = null;
+
+    if (b1.knifeTimer > 0 && b2.knifeTimer <= 0) {
+        striker = b1; victim = b2;
+    } else if (b2.knifeTimer > 0 && b1.knifeTimer <= 0) {
+        striker = b2; victim = b1;
+    } else {
+        if (v1_rel > v2_rel) {
+            striker = b1; victim = b2;
+        } else if (v2_rel > v1_rel) {
+            striker = b2; victim = b1;
+        }
+    }
+
+    if (striker && victim) {
+        if (victim.isGhost()) return;
+
+        const stage = getStage();
+        const rageMultiplier = striker.isRage() ? 2.0 : 1.0;
+        let baseDmg = (Math.floor(Math.abs(v1_rel - v2_rel) / 18) + 5) * stage.damageMultiplier * rageMultiplier;
+        
+        if (striker.knifeTimer > 0) {
+            baseDmg += 15 * stage.damageMultiplier * rageMultiplier;
+            playSound('slice');
+        }
+
+        if (baseDmg > 2) {
+            victim.hp -= baseDmg;
+            addScore(striker.owner, Math.floor(baseDmg * 10));
+            createSparks(victim.x, victim.y, striker.isRage() ? '#ff2200' : striker.glowColor, 12);
+        }
+    }
+}
+
+function checkGameOver() {
+    if (gameState !== 'PLAYING') return;
+
+    if (p1Ball.hp <= 0 || p2Ball.hp <= 0) {
+        let winningBall = null;
+        let roundMsg = '';
+
+        if (p1Ball.hp <= 0 && p2Ball.hp <= 0) {
+            p1Lives--;
+            p2Lives--;
+            roundMsg = 'مساوی در این دور!';
+        } else if (p1Ball.hp <= 0) {
+            p1Lives--;
+            p2Coins += 5;
+            addScore(2, 500);
+            winningBall = p2Ball;
+            roundMsg = 'پیروزی بازیکن ۲ در این دور! (+۵ سکه 🪙)';
+        } else {
+            p2Lives--;
+            p1Coins += 5;
+            addScore(1, 500);
+            winningBall = p1Ball;
+            roundMsg = 'پیروزی بازیکن ۱ در این دور! (+۵ سکه 🪙)';
+        }
+
+        updateDOMScoreboard();
+        spawnVictoryEffects(winningBall);
+
+        if (p1Lives <= 0 || p2Lives <= 0) {
+            gameState = 'MATCH_GAMEOVER';
+            if (p1Lives <= 0 && p2Lives <= 0) {
+                winnerName = 'مساوی کل مسابقه!';
+            } else if (p1Lives <= 0) {
+                winnerName = 'بازیکن ۲ (سایبر) 🏆';
+            } else {
+                winnerName = 'بازیکن ۱ (روح) 🏆';
+            }
+            statusText.innerText = `🎮 اتمام مسابقه! برنده نهایی: ${winnerName}`;
+            setTimeout(resetFullMatch, 3500);
+        } else {
+            gameState = 'ROUNDOVER';
+            winnerName = roundMsg;
+            statusText.innerText = `⚔️ ${roundMsg} | انتقال به مرحله بعد...`;
+            
+            setTimeout(() => {
+                currentStageIdx = (currentStageIdx + 1) % STAGES.length;
+                updateStageBanner();
+                resetRound();
+            }, 1800);
+        }
+    }
+}
+
+function resetRound() {
+    currentStageTimer = 0;
+    currentArenaRadius = baseArenaRadius;
+    p1AbilityCD = 0;
+    p2AbilityCD = 0;
+    p1Ball.x = center.x - 75; p1Ball.y = center.y; p1Ball.hp = MAX_HP; p1Ball.vx = 0; p1Ball.vy = 0; p1Ball.knifeTimer = 0; p1Ball.gunTimer = 0; p1Ball.ghostTimer = 0;
+    p2Ball.x = center.x + 75; p2Ball.y = center.y; p2Ball.hp = MAX_HP; p2Ball.vx = 0; p2Ball.vy = 0; p2Ball.knifeTimer = 0; p2Ball.gunTimer = 0; p2Ball.ghostTimer = 0;
+    items = []; bullets = []; particles = []; trailParticles = []; shockwaves = []; victoryFireworks = [];
+    gameState = 'PLAYING';
+    statusText.innerText = 'دور جدید شروع شد! به گوی ضربه بزنید.';
+    updateStageBanner();
+    updateDOMScoreboard();
+}
+
+function resetFullMatch() {
+    p1Lives = 3;
+    p2Lives = 3;
+    p1Score = 0;
+    p2Score = 0;
+    currentStageIdx = 0;
+    resetRound();
+}
+
+function drawCyberArena() {
+    const stage = getStage();
+
+    ctx.strokeStyle = stage.gridColor;
+    ctx.lineWidth = 1;
+    for (let x = 0; x < canvas.width; x += 18) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+    }
+    for (let y = 0; y < canvas.height; y += 18) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+    }
+
+    ctx.save();
+    
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, currentArenaRadius + 8, 0, Math.PI * 2);
+    ctx.lineWidth = 12; ctx.strokeStyle = '#0f172a'; ctx.stroke();
+
+    arenaPulseAngle += 0.03;
+    const pulseGlow = 15 + Math.sin(arenaPulseAngle) * 8;
+
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, currentArenaRadius, 0, Math.PI * 2);
+    ctx.lineWidth = 3.5;
+    ctx.strokeStyle = stage.themeColor;
+    ctx.shadowColor = stage.glowColor; ctx.shadowBlur = pulseGlow;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, currentArenaRadius - 6, 0, Math.PI * 2);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(248, 250, 252, 0.2)';
+    ctx.stroke();
+
+    ctx.restore();
+}
+
+function updateAndDrawShockwaves() {
+    for (let i = shockwaves.length - 1; i >= 0; i--) {
+        const sw = shockwaves[i];
+        sw.r += 4;
+        sw.alpha -= 0.025;
+
+        if (sw.alpha <= 0) {
+            shockwaves.splice(i, 1);
+            continue;
+        }
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2);
+        ctx.strokeStyle = sw.color;
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = sw.alpha;
+        ctx.shadowColor = sw.color;
+        ctx.shadowBlur = 15;
+        ctx.stroke();
+        ctx.restore();
+    }
+}
+
+function updateAndDrawVictoryFireworks(dt) {
+    if (victoryGlowAlpha > 0) {
+        ctx.save();
+        ctx.fillStyle = `rgba(250, 204, 21, ${victoryGlowAlpha * 0.18})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+        victoryGlowAlpha -= 0.015;
+    }
+
+    for (let i = victoryFireworks.length - 1; i >= 0; i--) {
+        const p = victoryFireworks[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.life -= dt;
+
+        if (p.life <= 0) {
+            victoryFireworks.splice(i, 1);
+        } else {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * (p.life / p.maxLife), 0, Math.PI * 2);
+            ctx.fillStyle = p.color;
+            ctx.shadowColor = p.color;
+            ctx.shadowBlur = 12;
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+}
+
+let lastTime = 0;
+function gameLoop(timestamp) {
+    if (!lastTime) lastTime = timestamp;
+    const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
+    lastTime = timestamp;
+
+    if (gameState === 'PLAYING') {
+        currentStageTimer += dt;
+        const stage = getStage();
+
+        if (stage.shrinking) {
+            currentArenaRadius = Math.max(90, baseArenaRadius - currentStageTimer * 1.8);
+        }
+    }
+
+    updateAbilityButtons(dt);
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    if (shakeTimer > 0) {
+        shakeTimer -= dt;
+        ctx.translate((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10);
+    }
+
+    drawCyberArena();
+    updateAndDrawShockwaves();
+    updateAndDrawLasers(dt);
+    drawItems();
+    updateAndDrawBullets(dt);
+
+    for (let i = trailParticles.length - 1; i >= 0; i--) {
+        const tp = trailParticles[i];
+        tp.life -= dt;
+        if (tp.life <= 0) trailParticles.splice(i, 1);
+        else {
+            ctx.beginPath();
+            ctx.arc(tp.x, tp.y, (tp.size || 4) * (tp.life / tp.maxLife), 0, Math.PI * 2);
+            ctx.fillStyle = tp.color; ctx.shadowColor = tp.color; ctx.shadowBlur = 10; ctx.fill();
+        }
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt;
+        if (p.life <= 0) particles.splice(i, 1);
+        else {
+            ctx.beginPath(); ctx.arc(p.x, p.y, 2.5 * (p.life / p.maxLife), 0, Math.PI * 2);
+            ctx.fillStyle = p.color; ctx.fill();
+        }
+    }
+
+    p1Ball.update(dt); p2Ball.update(dt);
+    checkOptimizedCollision(p1Ball, p2Ball);
+    checkGameOver();
+
+    if (myRole === 'HOST' && conn && conn.open) {
+        conn.send({
+            type: 'SYNC',
+            p1: { x: p1Ball.x, y: p1Ball.y, hp: p1Ball.hp, knifeTimer: p1Ball.knifeTimer, gunTimer: p1Ball.gunTimer, ghostTimer: p1Ball.ghostTimer },
+            p2: { x: p2Ball.x, y: p2Ball.y, hp: p2Ball.hp, knifeTimer: p2Ball.knifeTimer, gunTimer: p2Ball.gunTimer },
+            p1Score, p2Score, p1Coins, p2Coins, p1Lives, p2Lives, p1AbilityCD, p2AbilityCD, currentStageIdx, highScore,
+            items, bullets, gameState, winnerName
+        });
+    }
+
+    p1Ball.draw(); p2Ball.draw();
+    updateAndDrawVictoryFireworks(dt);
+
+    if (gameState === 'ROUNDOVER' || gameState === 'MATCH_GAMEOVER') {
+        ctx.fillStyle = 'rgba(2, 6, 23, 0.92)';
+        ctx.fillRect(0, center.y - 45, canvas.width, 90);
+        ctx.fillStyle = '#f59e0b';
+        ctx.font = 'bold 16px Orbitron, system-ui, Tahoma';
+        ctx.textAlign = 'center';
+        ctx.fillText(gameState === 'MATCH_GAMEOVER' ? '🏆 پایان مسابقه 🏆' : '⚔️ پیروزی در دور ⚔️', center.x, center.y - 12);
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = '13px Orbitron, system-ui, Tahoma';
+        ctx.fillText(winnerName, center.x, center.y + 18);
+    }
+
+    ctx.restore();
+
+    requestAnimationFrame(gameLoop);
+}
+
+initPeer();
+updateStageBanner();
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
